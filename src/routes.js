@@ -98,6 +98,7 @@ export const routes = [
       taskExist = taskExist[0]
 
       database.update('tasks', id, {
+        ...taskExist,
         completed_at: taskExist.completed_at ? null : new Date(),
         updated_at: new Date(),
       })
