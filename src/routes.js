@@ -1,63 +1,101 @@
 import { randomUUID } from 'node:crypto'
 import { Database } from './database.js'
 import { buildRoutePath } from './utils/build-route-path.js'
+import { create } from 'node:domain'
 
 const database = new Database()
 
 export const routes = [
   {
     method: 'GET',
-    path: buildRoutePath('/users'),
+    path: buildRoutePath('/tasks'),
     handler: (req, res) => {
       const { search } = req.query
 
-      const users = database.select('users', search ?{
-        name: search,
-        email: search,
+      const tasks = database.select('tasks', search ?{
+        title: search,
+        description: search,
       } : null)
 
-      return res.end(JSON.stringify(users))
+      return res.end(JSON.stringify(tasks))
     }
   },
   {
     method: 'POST',
-    path: buildRoutePath('/users'),
+    path: buildRoutePath('/tasks'),
     handler: (req, res) => {
-      const { name, email } = req.body
+      const { title, description } = req.body
 
-      const user = {
+      const task = {
         id: randomUUID(),
-        name,
-        email,
+        title,
+        description,
+        completed_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
       }
 
-      database.insert('users', user)
+      database.insert('tasks', task)
 
       return res.writeHead(201).end()
     }
   },
   {
     method: 'PUT',
-    path: buildRoutePath('/users/:id'),
+    path: buildRoutePath('/tasks/:id'),
     handler: (req, res) => {
       const { id } = req.params
-      const { name, email } = req.body
+      const { title, description } = req.body
+      const taskExist = database.select('tasks', id)
+
+      if (!taskExist) {
+        return res.writeHead(404).end(JSON.stringify({ error: 'Task not found.'}))
+      }
       
-      database.update('users', id, {
-        name, 
-        email,
-      })
+      const taskUpdate = {
+        title: title ?? taskExist.title,
+        description: description ?? taskExist.description,
+        updated_at: new Date()
+      }
+
+      database.update('tasks', id, taskUpdate)
       
       return res.writeHead(204).end()
     }
   },
   {
     method: 'DELETE',
-    path: buildRoutePath('/users/:id'),
+    path: buildRoutePath('/tasks/:id'),
+    handler: (req, res) => {
+      const { id } = req.params
+
+      const taskExist = database.select('tasks', id)
+
+      if (!taskExist) {
+        return res.writeHead(404).end(JSON.stringify({ error: 'Task not found.'}))
+      }
+      
+      database.delete('tasks', id)
+      
+      return res.writeHead(204).end()
+    }
+  },
+  {
+    method: 'PATCH',
+    path: buildRoutePath('/tasks/:id/complete'),
     handler: (req, res) => {
       const { id } = req.params
       
-      database.delete('users', id)
+      const taskExist = database.select('tasks', id)
+
+      if (!taskExist) {
+        return res.writeHead(404).end(JSON.stringify({ error: 'Task not found.'}))
+      }
+
+      database.update('tasks', id, {
+        completed_at: taskExist.completed_at ? null : new Date(),
+        updated_at: new Date(),
+      })
       
       return res.writeHead(204).end()
     }
