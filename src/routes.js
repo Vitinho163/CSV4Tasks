@@ -25,6 +25,10 @@ export const routes = [
     handler: (req, res) => {
       const { title, description } = req.body
 
+      if (!title || !description) {
+        return res.writeHead(400).end(JSON.stringify({ error: 'Title and description are required.'}))
+      }
+
       const task = {
         id: randomUUID(),
         title,
@@ -47,6 +51,9 @@ export const routes = [
       const { title, description } = req.body
       let taskExist = database.select('tasks', { id })
 
+      if (!title && !description) {
+        return res.writeHead(400).end(JSON.stringify({ error: 'Title or description are required.'}))
+      }
       
       if (taskExist.length === 0) {
         return res.writeHead(404).end(JSON.stringify({ error: 'Task not found.'}))
