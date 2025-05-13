@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { Database } from './database.js'
 import { buildRoutePath } from './utils/build-route-path.js'
-import { create } from 'node:domain'
 
 const database = new Database()
 
@@ -46,13 +45,17 @@ export const routes = [
     handler: (req, res) => {
       const { id } = req.params
       const { title, description } = req.body
-      const taskExist = database.select('tasks', id)
+      let taskExist = database.select('tasks', { id })
 
-      if (!taskExist) {
+      
+      if (taskExist.length === 0) {
         return res.writeHead(404).end(JSON.stringify({ error: 'Task not found.'}))
       }
+
+      taskExist = taskExist[0]
       
       const taskUpdate = {
+        ...taskExist,
         title: title ?? taskExist.title,
         description: description ?? taskExist.description,
         updated_at: new Date()
@@ -69,9 +72,9 @@ export const routes = [
     handler: (req, res) => {
       const { id } = req.params
 
-      const taskExist = database.select('tasks', id)
+      const taskExist = database.select('tasks', { id })
 
-      if (!taskExist) {
+      if (taskExist.length === 0) {
         return res.writeHead(404).end(JSON.stringify({ error: 'Task not found.'}))
       }
       
@@ -86,11 +89,13 @@ export const routes = [
     handler: (req, res) => {
       const { id } = req.params
       
-      const taskExist = database.select('tasks', id)
+      let taskExist = database.select('tasks', {id})
 
-      if (!taskExist) {
+      if (taskExist.length === 0) {
         return res.writeHead(404).end(JSON.stringify({ error: 'Task not found.'}))
       }
+
+      taskExist = taskExist[0]
 
       database.update('tasks', id, {
         completed_at: taskExist.completed_at ? null : new Date(),
